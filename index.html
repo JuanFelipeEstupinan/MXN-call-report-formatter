@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MXN Report Formatter</title>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.2.1/exceljs.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: #7dc9fc;
+            color: black;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        input[type="file"] {
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #001e47;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #185ba8;
+        }
+
+        footer {
+            background-color: #f0f0f0;
+            text-align: center;
+            padding: 10px 0;
+            margin-top: 20px;
+        }
+
+        #loading {
+            display: none;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPwAAABkCAMAAACVQK17AAABSlBMVEVHcEwfZ60AAAACAgIbGxwAAAAAAAAySmQjRmkBAQFBQUMcabJVVlgZXakAAAAcaLIAAAAaZbABAQEaZrAAAAAAAAAAAAAAAAAAAAAnisoZXqoDAwMbYaxfYGIjlNEbaLEAAAAZX6saYq0ZYaxtbnACAgIAAABqa20AAABZWlwYXKkbaLEdZK8CAgJNTU8ZXKlUVVdJSUtSUlRUVVcji8oYbbUcZ7Eeg8RNTU9lZmgcZ7FISEpSUlRZWVtKSkwZer4jisokiclHSEkA//8YZ7QAAAAYW6gdZ7EXbLQVbrZMTE4UcbgTdLoaarMeZK8aX6tVVlhZWlwUd7wWeb5QUFJISEpeX2FSU1UbfsEegMMYe78ig8VkZWcljcwmhsccYq1oaWs5OTptbnDq8vYqKiyOv9/R5fAUFBU7i8ZnrtlUms0soNm51+pHcEznxjCWAAAAbnRSTlMADSUwDT0ZBgL2/hiU9mw4+1rYJpXlvqrs+8BHq2f+SeCVz36ZYcv9Uh7qbOp/lt0wVXdF2LvzoerJ3s/F5arthL7yR///////////////////////////////////////////////////////AJiQkpIAABGnSURBVHja3JxrV9raFoZJy26iMTum2d0dUJAG7PFwqdwERcXbGIo3QC3iBRWtlSL6/z+fdc9cId3d5xvw0taOkGqevHPONddaoYHAv5ViWk44mzKMPSbDSEWUwORL02NOOLXnVSqhTj655cQNL7iRjSRik268EvMh38s6MXviQ163IsPRboTTthTvqqLouqJOGnrY8EG3dCkpzLQTjsfj4UjanJxg0NNho+nKFx0nRblWr9fwq5YpJSYjGdQYRu8ycf5sAqKrZiRTh6rVViMTUAX1RIZQN6joHTAipgZtT2P0fSDMX45YyrjbLriFuhnJ9oDulDH5ARDhr5VLUmqMn+2YtiapEY9J9VyP1An5ERDhx/jhcXVfsyOcHGZz2JTOskv1fUp+LCTwayj4Y+M49GmxeIODg2yO2B52io6Zz5goP8bHNysjF4jxSHdrtUHR992E3t+P6H7sjPwbEePH+Ji+0VhN6+PGniHoApymcsn2Zyfk10yEH9Ib42W+ms5Q9ANYyo592Ck6Jr8UovwI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'>
+        <h1>Calls Report Formatter</h1>
+    </header>
+    
+    <main>
+        <input type="file" id="csvFile" accept=".csv">
+        <button onclick="convertCsvToExcel()">Convert & Download</button>
+        <div id="loading">Loading...</div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 My Xcell Network</p>
+    </footer>
+    
+    <script>
+        /**
+         * Function: convertCsvToExcel
+         * -----------------------------
+         * Handles the file upload, reads the CSV data, and triggers the conversion to Excel.
+         */
+        function convertCsvToExcel() {
+            const fileInput = document.getElementById("csvFile");
+            if (!fileInput.files.length) {
+                alert("Please select a CSV file.");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                const csvData = event.target.result;
+                Papa.parse(csvData, {
+                    header: true,       // Treat the first row as column headers
+                    skipEmptyLines: true, // Skip empty rows in the CSV
+                    complete: function(results) {
+                        processCsvData(results.data); // Process the parsed data
+                    }
+                });
+            };
+            reader.readAsText(file); // Read the selected file as text
+        }
+
+        /**
+         * Function: timeToSeconds
+         * -----------------------------
+         * Converts a time string in "hh:mm:ss" format to total seconds.
+         *
+         * Parameters:
+         * time (string): The time string to convert.
+         *
+         * Returns:
+         * number: The total number of seconds, or 0 if the input is invalid.
+         */
+        function timeToSeconds(time) {
+            if (!time || typeof time !== "string" || !time.includes(":")) return 0;
+            const [hours, minutes, seconds] = time.split(":").map(Number);
+            return (hours || 0) * 3600 + (minutes || 0) * 60 + (seconds || 0);
+        }
+
+        /**
+         * Function: secondsToTime
+         * -----------------------------
+         * Converts a number of seconds to a time string in "hh:mm:ss" format.
+         *
+         * Parameters:
+         * seconds (number): The number of seconds to convert.
+         *
+         * Returns:
+         * string: The time string in "hh:mm:ss" format.
+         */
+        function secondsToTime(seconds) {
+            if (seconds < 0) return "00:00:00";
+            const h = String(Math.floor(seconds / 3600)).padStart(2, "0");
+            const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
+            const s = String(seconds % 60).padStart(2, "0");
+            return `${h}:${m}:${s}`;
+        }
+
+        /**
+         * Function: processCsvData
+         * -----------------------------
+         * Processes the parsed CSV data to calculate additional fields and prepare it for Excel generation.
+         *
+         * Parameters:
+         * data (array): An array of objects representing the parsed CSV data.  Each object is a row.
+         */
+        async function processCsvData(data) {
+            if (data.length < 1) {
+                alert("Invalid CSV format.");
+                return;
+            }
+            
+            let processedData = [];
+            
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                const callTimeSeconds = timeToSeconds(row["Call Time"]);
+                const durationSeconds = timeToSeconds(row["Duration"]);
+                const callEnded = secondsToTime(callTimeSeconds + durationSeconds);
+                
+                let acw = "00:00:00"; // After Call Work time
+                if (i < data.length - 1) {
+                    const nextCallTimeSeconds = timeToSeconds(data[i + 1]["Call Time"]);
+                    const nextDurationSeconds = timeToSeconds(data[i + 1]["Duration"]);
+                    acw = secondsToTime(callTimeSeconds - (nextCallTimeSeconds + nextDurationSeconds));
+                }
+                
+                processedData.push([
+                    row["Call Date"],
+                    row["From Name"],
+                    row["From"],
+                    row["Dialed"],
+                    row["To"],
+                    row["Call Time"],
+                    row["Duration"],
+                    callEnded,
+                    acw
+                ]);
+            }
+            
+            generateExcel(processedData);
+        }
+
+        /**
+         * Function: generateExcel
+         * -----------------------------
+         * Generates an Excel file from the processed data, including formatting and conditional formatting.
+         *
+         * Parameters:
+         * data (array): An array of arrays representing the data to be written to the Excel file.
+         */
+        async function generateExcel(data) {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet(`${data[data.length - 1][0]} - ${data[0][0]}`);
+
+            worksheet.columns = [
+                { header: "Call Date", key: "call_date" },
+                { header: "From Name", key: "from_name" },
+                { header: "From", key: "from" },
+                { header: "Dialed", key: "dialed" },
+                { header: "To", key: "to" },
+                { header: "Call Time", key: "call_time", style: { numFmt: "hh:mm:ss" } },
+                { header: "Duration", key: "duration", style: { numFmt: "hh:mm:ss" } },
+                { header: "Call Ended", key: "call_ended", style: { numFmt: "hh:mm:ss" } },
+                { header: "ACW", key: "acw", style: { numFmt: "hh:mm:ss" } }
+            ];
+            
+            worksheet.addRow(worksheet.columns.map(col => col.header)); // Add headers
+
+            data.forEach((row) => {
+                worksheet.addRow(row);
+            });
+            worksheet.spliceRows(2, 1);  // Remove duplicate header row
+
+            let acwGreaterThan5Counter = 0;
+            let acwBetween4And5Counter = 0;
+            let internalCallsCounter = 0;
+            let timeGapsCounter = 0;
+
+            // Apply formatting and conditional formatting
+            data.forEach((row, index) => {
+                const acwCell = worksheet.getCell(index + 2, 9); // Get the ACW cell
+                const acwSeconds = timeToSeconds(row[8]);
+
+                // Apply background color based on ACW time
+                if (acwSeconds > 300) {
+                    acwCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F4CCCC" } }; // Light red - over 5 minutes
+                    acwGreaterThan5Counter++;
+                } else if (acwSeconds >= 240 && acwSeconds <= 300) {
+                    acwCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2CC" } }; // Light yellow - 4 to 5 minutes
+                    acwBetween4And5Counter++;
+                }
+
+                // Apply background color for calls on the same day with 0 ACW
+                if (acwSeconds === 0 && (index < data.length - 1 && row[0] === data[index + 1][0])) {
+                    worksheet.getRow(index + 2).eachCell(cell => {
+                        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "C9DAF8" } }; // Light blue - internal calls
+                    });
+                    internalCallsCounter++;
+                }
+
+                // Apply background color for last call of the day
+                if (index < data.length - 1 && row[0] !== data[index + 1][0]) {
+                    worksheet.getRow(index + 2).eachCell(cell => {
+                        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "D9D2E9" } }; // Light purple - date change
+                    });
+                  // Apply red color to call time if it is after 9:20 AM.
+                    const callTimeSeconds = timeToSeconds(row[5]);
+                    if (callTimeSeconds > timeToSeconds("09:20:00")) {
+                        worksheet.getCell(index + 2, 6).fill = {
+                            type: "pattern",
+                            pattern: "solid",
+                            fgColor: { argb: "EA9999" } // red - time gap
+                        };
+                        timeGapsCounter++;
+                    }
+                }
+                // Apply background color for call ended time before 6PM
+                if (index === 0 || (index > 0 && data[index - 1][0] !== row[0])) {
+                    const callEndedSeconds = timeToSeconds(row[7]);
+                    if (callEndedSeconds < timeToSeconds("18:00:00")) {
+                        worksheet.getCell(index + 2, 8).fill = {
+                            type: "pattern",
+                            pattern: "solid",
+                            fgColor: { argb: "EA9999" } // red - time gap
+                        };
+                        timeGapsCounter++;
+                    }
+                }
+            });
+
+            // Add totals
+            worksheet.getCell('K1').value = "Totales";
+            worksheet.getCell('K1').font = { bold: true };
+
+            // Add totals
+            worksheet.getCell('K2').value = "Llamadas totales";
+            worksheet.getCell('L2').value = data.length;
+            
+            // Total ACW greater than 5 mins
+            worksheet.getCell('K3').value = ">5MIN";
+            worksheet.getCell('K3').fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F4CCCC" } };
+            worksheet.getCell('L3').value = acwGreaterThan5Counter;
+            worksheet.getCell('L3').fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F4CCCC" } };
+            
+            // Total ACW between 4 and 5 minutes
+            worksheet.getCell('K4').value = "4MIN-5MIN";
+            worksheet.getCell('K4').fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2CC" } };
+            worksheet.getCell('L4').value = acwBetween4And5Counter;
+            worksheet.getCell('L4').fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2CC" } };
+            
+            // Total time gaps
+            worksheet.getCell('K5').value = "Desfase de tiempos";
+            worksheet.getCell('K5').fill = { type: "pattern", pattern: "solid", fgColor: { argb: "EA9999" } };
+            worksheet.getCell('L5').value = timeGapsCounter;
+            worksheet.getCell('L5').fill = { type: "pattern", pattern: "solid", fgColor: { argb: "EA9999" } };
+            
+            // Total internal calls
+            worksheet.getCell('K6').value = "Llamadas internas";
+            worksheet.getCell('K6').fill = { type: "pattern", pattern: "solid", fgColor: { argb: "C9DAF8" } };
+            worksheet.getCell('L6').value = internalCallsCounter;
+            worksheet.getCell('L6').fill = { type: "pattern", pattern: "solid", fgColor: { argb: "C9DAF8" } };
+            
+            worksheet.getCell('K7').value = "Cambio de fecha";
+            worksheet.getCell('K7').fill = { type: "pattern", pattern: "solid", fgColor: { argb: "D9D2E9" } };
+            
+            // Auto-adjust column widths
+            worksheet.columns.forEach((column, index) => {
+                let maxLength = 0;
+                column.eachCell({ includeEmpty: true }, (cell) => {
+                    const cellValue = cell.value ? cell.value.toString() : "";
+                    const cellLength = cellValue.length;
+                    if (cellLength > maxLength) {
+                        maxLength = cellLength;
+                    }
+                });
+                column.width = maxLength < 10 ? 10 : maxLength + 2; // Add some padding
+            });
+
+            // Pie chart
+            const pieData = [
+                { label: 'ACW < 4MIN', value: data.length - acwBetween4And5Counter - acwGreaterThan5Counter },
+                { label: 'ACW 4MIN - 5MIN', value: acwBetween4And5Counter },
+                { label: 'ACW > 5MIN', value: acwGreaterThan5Counter },
+            ];
+            console.log(pieData);
+            try{
+                const pieChart = worksheet.addChart({
+                    type: 'pie',
+                    title: 'ACW Behavior',
+                    legend: {
+                        position: 'right',
+                    },
+                });
+
+                // Add data series to the pie chart
+                pieChart.addSeries(pieData);
+
+                // Position the pie chart
+                pieChart.model.bottomRight = { col: 7, row: 10 };
+                pieChart.model.topLeft = { col: 3, row: 2 };
+            } catch (error) {
+                console.error("Error creating pie chart:", error);
+            }
+            
+            // Add branding
+            worksheet.getCell('K11').value = "Powered by:";
+            try {
+                const imageId = workbook.addImage({
+                    base64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPwAAABkCAMAAACVQK17AAABSlBMVEVHcEwfZ60AAAACAgIbGxwAAAAAAAAySmQjRmkBAQFBQUMcabJVVlgZXakAAAAcaLIAAAAaZbABAQEaZrAAAAAAAAAAAAAAAAAAAAAnisoZXqoDAwMbYaxfYGIjlNEbaLEAAAAZX6saYq0ZYaxtbnACAgIAAABqa20AAABZWlwYXKkbaLEdZK8CAgJNTU8ZXKlUVVdJSUtSUlRUVVcji8oYbbUcZ7Eeg8RNTU9lZmgcZ7FISEpSUlRZWVtKSkwZer4jisokiclHSEkA//8YZ7QAAAAYW6gdZ7EXbLQVbrZMTE4UcbgTdLoaarMeZK8aX6tVVlhZWlwUd7wWeb5QUFJISEpeX2FSU1UbfsEegMMYe78ig8VkZWcljcwmhsccYq1oaWs5OTptbnDq8vYqKiyOv9/R5fAUFBU7i8ZnrtlUms0soNm51+pHcEznxjCWAAAAbnRSTlMADSUwDT0ZBgL2/hiU9mw4+1rYJpXlvqrs+8BHq2f+SeCVz36ZYcv9Uh7qbOp/lt0wVXdF2LvzoerJ3s/F5arthL7yR///////////////////////////////////////////////////////AJiQkpIAABGnSURBVHja3JxrV9raFoZJy26iMTum2d0dUJAG7PFwqdwERcXbGIo3QC3iBRWtlSL6/z+fdc9cId3d5xvw0taOkGqevHPONddaoYHAv5ViWk44mzKMPSbDSEWUwORL02NOOLXnVSqhTj655cQNL7iRjSRik268EvMh38s6MXviQ163IsPRboTTthTvqqLouqJOGnrY8EG3dCkpzLQTjsfj4UjanJxg0NNho+nKFx0nRblWr9fwq5YpJSYjGdQYRu8ycf5sAqKrZiRTh6rVViMTUAX1RIZQN6joHTAipgZtT2P0fSDMX45YyrjbLriFuhnJ9oDulDH5ARDhr5VLUmqMn+2YtiapEY9J9VyP1An5ERDhx/jhcXVfsyOcHGZz2JTOskv1fUp+LCTwayj4Y+M49GmxeIODg2yO2B52io6Zz5goP8bHNysjF4jxSHdrtUHR992E3t+P6H7sjPwbEePH+Ji+0VhN6+PGniHoApymcsn2Zyfk10yEH9Ib42W+ms5Q9ANYyo592Ck6Jr8UovwI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',
+                    extension: 'png',
+                });
+
+                worksheet.addImage(imageId, {
+                    tl: { col: 10, row: 11 }, // Top-left corner of the image
+                    ext: { width: 252, height: 100 }, // Size of the image
+                });
+            } catch (error) {
+                console.error("Error adding image:", error);
+            }
+
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "Calls report.xlsx";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
